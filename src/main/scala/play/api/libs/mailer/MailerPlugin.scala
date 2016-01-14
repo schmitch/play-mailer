@@ -14,31 +14,24 @@ import scala.collection.JavaConverters._
 // for compile-time injection
 trait MailerComponents {
   def configuration: Configuration
+
   lazy val mailerClient = new SMTPMailer(new SMTPConfigurationProvider(configuration).get())
 }
 
-trait MailerBindings {
-
-  val mailers = Seq(
+// for runtime injection
+class MailerModule extends Module {
+  def bindings(environment: Environment, configuration: Configuration) = Seq(
+    bind[MailerClient].to[ConfigurableMailer],
     bind[JMailerClient].to(bind[MailerClient]),
     bind[MailerClient].qualifiedWith("mock").to[MockMailer],
     bind[JMailerClient].qualifiedWith("mock").to[MockMailer]
   )
-
 }
 
-// for runtime injection
-class MailerModule extends Module with MailerBindings {
+class SMTPConfigurationModule extends Module {
   def bindings(environment: Environment, configuration: Configuration) = Seq(
-    bind[MailerClient].to[SMTPMailer]
-  ) ++ mailers
-}
-
-class SMTPConfigurationModule extends Module with MailerBindings{
-  def bindings(environment: Environment, configuration: Configuration) = Seq(
-    bind[MailerClient].to[ConfigurableMailer],
     bind[SMTPConfiguration].toProvider[SMTPConfigurationProvider]
-  ) ++ mailers
+  )
 }
 
 // API
@@ -52,11 +45,11 @@ object MailerPlugin {
 trait MailerClient extends JMailerClient {
 
   /**
-   * Sends an email with the provided data.
-   *
-   * @param data data to send
-   * @return the message id
-   */
+    * Sends an email with the provided data.
+    *
+    * @param data data to send
+    * @return the message id
+    */
   def send(data: Email): String
 
   override def send(data: JEmail): String = {
@@ -98,7 +91,7 @@ trait MailerClient extends JMailerClient {
 
 // Implementations
 
-class SMTPMailer @Inject() (smtpConfiguration: SMTPConfiguration) extends MailerClient {
+class SMTPMailer @Inject()(smtpConfiguration: SMTPConfiguration) extends MailerClient {
 
   private lazy val instance = {
     if (smtpConfiguration.mock) {
@@ -106,7 +99,9 @@ class SMTPMailer @Inject() (smtpConfiguration: SMTPConfiguration) extends Mailer
     } else {
       new CommonsMailer(smtpConfiguration) {
         override def send(email: MultiPartEmail): String = email.send()
+
         override def createMultiPartEmail(): MultiPartEmail = new MultiPartEmail()
+
         override def createHtmlEmail(): HtmlEmail = new HtmlEmail()
       }
     }
@@ -139,11 +134,11 @@ abstract class CommonsMailer(conf: SMTPConfiguration) extends MailerClient {
     val email = createEmail(data.bodyText, data.bodyHtml, data.charset.getOrElse("utf-8"))
     email.setSubject(data.subject)
     setAddress(data.from) { (address, name) => email.setFrom(address, name) }
-    data.replyTo.foreach(setAddress(_) { (address, name) => email.addReplyTo(address, name)})
+    data.replyTo.foreach(setAddress(_) { (address, name) => email.addReplyTo(address, name) })
     data.bounceAddress.foreach(email.setBounceAddress)
-    data.to.foreach(setAddress(_) { (address, name) => email.addTo(address, name)})
-    data.cc.foreach(setAddress(_) { (address, name) => email.addCc(address, name)})
-    data.bcc.foreach(setAddress(_) { (address, name) => email.addBcc(address, name)})
+    data.to.foreach(setAddress(_) { (address, name) => email.addTo(address, name) })
+    data.cc.foreach(setAddress(_) { (address, name) => email.addCc(address, name) })
+    data.bcc.foreach(setAddress(_) { (address, name) => email.addBcc(address, name) })
     data.headers.foreach {
       header => email.addHeader(header._1, header._2)
     }
@@ -183,8 +178,8 @@ abstract class CommonsMailer(conf: SMTPConfiguration) extends MailerClient {
   }
 
   /**
-   * Creates an appropriate email object based on the content type.
-   */
+    * Creates an appropriate email object based on the content type.
+    */
   private def createEmail(bodyText: Option[String], bodyHtml: Option[String], charset: String): MultiPartEmail = {
     (bodyHtml.filter(_.trim.nonEmpty), bodyText.filter(_.trim.nonEmpty)) match {
       case (Some(htmlMsg), bodyTextOpt) =>
@@ -206,8 +201,8 @@ abstract class CommonsMailer(conf: SMTPConfiguration) extends MailerClient {
   }
 
   /**
-   * Extracts an email address from the given string and passes to the enclosed method.
-   */
+    * Extracts an email address from the given string and passes to the enclosed method.
+    */
   private def setAddress(emailAddress: String)(setter: (String, String) => Unit) = {
     if (emailAddress != null) {
       try {
@@ -344,7 +339,7 @@ object SMTPConfiguration {
 
 class SMTPConfigurationProvider @Inject()(configuration: Configuration) extends Provider[SMTPConfiguration] {
   override def get() = {
-    val config  = PlayConfig(configuration).getDeprecatedWithFallback("play.mailer", "smtp")
+    val config = PlayConfig(configuration).getDeprecatedWithFallback("play.mailer", "smtp")
     SMTPConfiguration(config)
   }
 }
