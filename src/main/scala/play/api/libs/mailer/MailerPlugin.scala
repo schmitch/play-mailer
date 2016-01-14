@@ -17,20 +17,28 @@ trait MailerComponents {
   lazy val mailerClient = new SMTPMailer(new SMTPConfigurationProvider(configuration).get())
 }
 
-// for runtime injection
-class MailerModule extends Module {
-  def bindings(environment: Environment, configuration: Configuration) = Seq(
-    bind[MailerClient].to[SMTPMailer],
+trait MailerBindings {
+
+  val mailers = Seq(
     bind[JMailerClient].to(bind[MailerClient]),
     bind[MailerClient].qualifiedWith("mock").to[MockMailer],
     bind[JMailerClient].qualifiedWith("mock").to[MockMailer]
   )
+
 }
 
-class SMTPConfigurationModule extends Module {
+// for runtime injection
+class MailerModule extends Module with MailerBindings {
   def bindings(environment: Environment, configuration: Configuration) = Seq(
+    bind[MailerClient].to[SMTPMailer]
+  ) ++ mailers
+}
+
+class SMTPConfigurationModule extends Module with MailerBindings{
+  def bindings(environment: Environment, configuration: Configuration) = Seq(
+    bind[MailerClient].to[ConfigurableMailer],
     bind[SMTPConfiguration].toProvider[SMTPConfigurationProvider]
-  )
+  ) ++ mailers
 }
 
 // API
@@ -107,6 +115,14 @@ class SMTPMailer @Inject() (smtpConfiguration: SMTPConfiguration) extends Mailer
   override def send(data: Email): String = {
     instance.send(data)
   }
+}
+
+class ConfigurableMailer @Inject()(smtpConfigurationProvider: Provider[SMTPConfiguration]) extends MailerClient {
+
+  override def send(data: Email): String = {
+    new SMTPMailer(smtpConfigurationProvider.get()).send(data)
+  }
+
 }
 
 abstract class CommonsMailer(conf: SMTPConfiguration) extends MailerClient {
