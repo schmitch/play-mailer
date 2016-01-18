@@ -251,14 +251,14 @@ class MailerPluginSpec extends Specification {
     val applicationWithDeprecatedMailerConfiguration = FakeApplication(additionalConfiguration = Map("smtp.host" -> "typesafe.org", "smtp.port" -> 25))
 
     "provide the Scala mailer client" in new WithApplication(applicationWithMinimalMailerConfiguration) {
-      app.injector.instanceOf[MailerClient] must beAnInstanceOf[ConfigurableMailer]
+      app.injector.instanceOf[MailerClient] must beAnInstanceOf[SMTPReconfigurableMailer]
     }
     "provide the Java mailer client" in new WithApplication(applicationWithMinimalMailerConfiguration) {
-      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[ConfigurableMailer]
+      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[SMTPReconfigurableMailer]
     }
     // Deprecated configuration should still works
     "provide the Scala mailer client (even with deprecated configuration)" in new WithApplication(applicationWithDeprecatedMailerConfiguration) {
-      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[ConfigurableMailer]
+      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[SMTPReconfigurableMailer]
     }
     "provide the Scala mocked mailer client" in new WithApplication() {
       app.injector.instanceOf(bind[MailerClient].qualifiedWith("mock")) must beAnInstanceOf[MockMailer]
