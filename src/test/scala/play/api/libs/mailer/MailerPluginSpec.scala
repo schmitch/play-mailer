@@ -1,13 +1,17 @@
 package play.api.libs.mailer
 
 import java.io.File
+import javax.inject.{Inject, Provider}
 import javax.mail.Part
 
 import org.apache.commons.mail.{EmailConstants, HtmlEmail, MultiPartEmail}
+import org.specs2.mock.Mockito
 import org.specs2.mutable._
+import play.api.{PlayConfig, Configuration}
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.test._
 
-class MailerPluginSpec extends Specification {
+class MailerPluginSpec extends Specification with Mockito {
 
   object SimpleMailerClient extends MailerClient {
     override def send(data: Email): String = ""
@@ -247,8 +251,12 @@ class MailerPluginSpec extends Specification {
     import play.libs.mailer.{MailerClient => JMailerClient}
     import play.api.inject.bind
 
+    val mockedConfigurationProvider = mock[SMTPConfigurationProvider]
+    mockedConfigurationProvider.get() returns SMTPConfiguration("typesafe.org", 25, mock = true)
+
     val applicationWithMinimalMailerConfiguration = FakeApplication(additionalConfiguration = Map("play.mailer.host" -> "typesafe.org", "play.mailer.port" -> 25))
     val applicationWithDeprecatedMailerConfiguration = FakeApplication(additionalConfiguration = Map("smtp.host" -> "typesafe.org", "smtp.port" -> 25))
+    val applicationWithMockedConfigurationProvider = new GuiceApplicationBuilder().overrides(bind[SMTPConfiguration].to(mockedConfigurationProvider)).build()
 
     "provide the Scala mailer client" in new WithApplication(applicationWithMinimalMailerConfiguration) {
       app.injector.instanceOf[MailerClient] must beAnInstanceOf[SMTPReconfigurableMailer]
@@ -265,6 +273,12 @@ class MailerPluginSpec extends Specification {
     }
     "provide the Java mocked mailer client" in new WithApplication() {
       app.injector.instanceOf(bind[JMailerClient].qualifiedWith("mock")) must beAnInstanceOf[MockMailer]
+    }
+    "call the configuration multiple times" in new WithApplication(applicationWithMockedConfigurationProvider) {
+      val mail = Email("Test Configurable Mailer", "root@typesafe.org")
+      app.injector.instanceOf[MailerClient].send(mail)
+      app.injector.instanceOf[MailerClient].send(mail)
+      there was two(mockedConfigurationProvider).get()
     }
 
   }
