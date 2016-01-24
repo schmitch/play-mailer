@@ -120,6 +120,11 @@ import javax.inject.Inject
 class MyComponent @Inject() (mailerClient: MailerClient)
 ```
 
+Currently the mailerClient will always pull the configuration when calling mailerClient.send(email).
+This means that you have some runtime overhead since if you only want a static configuration.
+We did this to ensure that a dynamic reconfiguration of the mailer will also work flawless.
+
+
 #### With compile time injection
 
 Declare the `MailerClient` without the `@Inject` annotation:

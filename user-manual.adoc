@@ -46,6 +46,8 @@ play {
 }
 ```
 
+Currently be aware that the get() method of your CustomSMTPConfigurationProvider will be called multiple times.
+
 === New instances
 
 You can also use the `SMTPMailer` constructor to create new instances with custom configuration:
