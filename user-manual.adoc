@@ -46,7 +46,7 @@ play {
 }
 ```
 
-Currently be aware that the get() method of your CustomSMTPConfigurationProvider will be called multiple times.
+Be aware that the get() method of your CustomSMTPConfigurationProvider will be called multiple times.
 
 === New instances
 
