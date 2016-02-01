@@ -20,7 +20,7 @@ trait MailerComponents {
 // for runtime injection
 class MailerModule extends Module {
   def bindings(environment: Environment, configuration: Configuration) = Seq(
-    bind[MailerClient].to[SMTPReconfigurableMailer],
+    bind[MailerClient].to[SMTPDynamicMailer],
     bind[JMailerClient].to(bind[MailerClient]),
     bind[MailerClient].qualifiedWith("mock").to[MockMailer],
     bind[JMailerClient].qualifiedWith("mock").to[MockMailer]
