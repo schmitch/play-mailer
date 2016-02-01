@@ -259,14 +259,14 @@ class MailerPluginSpec extends Specification with Mockito {
     val applicationWithMockedConfigurationProvider = new GuiceApplicationBuilder().overrides(bind[SMTPConfiguration].to(mockedConfigurationProvider)).build()
 
     "provide the Scala mailer client" in new WithApplication(applicationWithMinimalMailerConfiguration) {
-      app.injector.instanceOf[MailerClient] must beAnInstanceOf[SMTPReconfigurableMailer]
+      app.injector.instanceOf[MailerClient] must beAnInstanceOf[SMTPDynamicMailer]
     }
     "provide the Java mailer client" in new WithApplication(applicationWithMinimalMailerConfiguration) {
-      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[SMTPReconfigurableMailer]
+      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[SMTPDynamicMailer]
     }
     // Deprecated configuration should still works
     "provide the Scala mailer client (even with deprecated configuration)" in new WithApplication(applicationWithDeprecatedMailerConfiguration) {
-      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[SMTPReconfigurableMailer]
+      app.injector.instanceOf[JMailerClient] must beAnInstanceOf[SMTPDynamicMailer]
     }
     "provide the Scala mocked mailer client" in new WithApplication() {
       app.injector.instanceOf(bind[MailerClient].qualifiedWith("mock")) must beAnInstanceOf[MockMailer]
@@ -274,7 +274,7 @@ class MailerPluginSpec extends Specification with Mockito {
     "provide the Java mocked mailer client" in new WithApplication() {
       app.injector.instanceOf(bind[JMailerClient].qualifiedWith("mock")) must beAnInstanceOf[MockMailer]
     }
-    "call the configuration multiple times" in new WithApplication(applicationWithMockedConfigurationProvider) {
+    "call the configuration each time we send an email" in new WithApplication(applicationWithMockedConfigurationProvider) {
       val mail = Email("Test Configurable Mailer", "root@typesafe.org")
       app.injector.instanceOf[MailerClient].send(mail)
       app.injector.instanceOf[MailerClient].send(mail)

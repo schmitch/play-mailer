@@ -111,7 +111,7 @@ class SMTPMailer @Inject() (smtpConfiguration: SMTPConfiguration) extends Mailer
   }
 }
 
-class SMTPReconfigurableMailer @Inject()(smtpConfigurationProvider: Provider[SMTPConfiguration]) extends MailerClient {
+class SMTPDynamicMailer @Inject()(smtpConfigurationProvider: Provider[SMTPConfiguration]) extends MailerClient {
 
   override def send(data: Email): String = {
     new SMTPMailer(smtpConfigurationProvider.get()).send(data)
